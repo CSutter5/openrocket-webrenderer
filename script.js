@@ -7,6 +7,8 @@ document.getElementById('zipFileInput').addEventListener('change', function(even
     if (file && file.name.endsWith('.ork')) {
         const reader = new FileReader();
         reader.onload = function(event) {
+            confirm("Make sure all fins are converted to freeform fins");
+
             const arrayBuffer = event.target.result;
             JSZip.loadAsync(arrayBuffer).then(function(zip) {
                 zip.forEach(function (relativePath, zipEntry) {
@@ -55,6 +57,7 @@ function drawRocket(rocket, canvas) {
 
     var stages = rocket.querySelectorAll('stage');
 
+
     stages.forEach((stage) => {
         drawSubComponents(stage.querySelector('subcomponents'), ctx);
     });
@@ -63,6 +66,7 @@ function drawRocket(rocket, canvas) {
         var components = component.children;
         
         for (var i=0; i < components.length; i++) {
+            console.log(y);
             switch (components[i].nodeName) {
                 case "nosecone":
                     y += drawNoseCone(components[i], ctx);
@@ -74,9 +78,9 @@ function drawRocket(rocket, canvas) {
                     y = drawSubComponents(components[i].querySelector('subcomponents'), ctx, y)
                     break;
 
-                case "ellipticalfinset":
+                // case "ellipticalfinset":
                 case "freeformfinset":
-                case "trapezoidfinset":
+                // case "trapezoidfinset":
                     drawFins(components[i], ctx, y);
                     break;
 
@@ -232,22 +236,21 @@ function drawRocket(rocket, canvas) {
         let length = component.querySelector('length').textContent * scaler.value;
         let radius = component.querySelector('radius').textContent;
 
-        const originY = canvas.height / 2;
-
         if (radius.includes("auto")) {
             radius = radius.split("auto")[1];
         }
-
         radius *= scaler.value;
+        
+        const originY = canvas.height / 2;
+
         console.log(length, radius, y);
 
         ctx.beginPath();
         
         ctx.moveTo(y, originY-radius);
-        ctx.lineTo(y+length, originY-radius)
-        ctx.lineTo(y+length, originY+radius)
-        ctx.lineTo(y, originY+radius)
-
+        ctx.lineTo(y+length, originY-radius);
+        ctx.lineTo(y+length, originY+radius);
+        ctx.lineTo(y, originY+radius);
 
         ctx.closePath();
         ctx.fillStyle = 'gray';
@@ -257,7 +260,94 @@ function drawRocket(rocket, canvas) {
         return length;
     }
 
-    function drawFins(component, ctx, y) {
+    function drawFins(component, ctx, length) {
+        console.log("drawing fins");
+
+        const originY = canvas.height / 2;
+
+        ctx.beginPath();
+
+        console.log(component);
+
+        let radius = component.parentElement.parentElement.querySelector('radius').textContent;
+
+        if (radius.includes("auto")) {
+            radius = radius.split("auto")[1];
+        }
+        radius *= scaler.value;
+        
+        let xOffset = length + (component.querySelector('position').innerHTML * scaler.value);
+        let yOffset = originY - radius;
+
+        let rootchord;
+        let tipchord;
+        let sweeplength;
+        let height;
+
+        switch (component.localName) {
+            case "ellipticalfinset":
+                console.log("drawing elliptical fins");
+                
+                rootchord = component.querySelector('rootchord').innerHTML * scaler.value;
+                height    = component.querySelector('height').innerHTML * scaler.value;
+
+                ctx.ellipse(
+                    xOffset - rootchord,
+                    yOffset,
+                    rootchord/2,
+                    height,
+                    0,
+                    0,
+                    Math.PI,
+                    true
+                )
+
+                break;
+                
+            case "trapezoidfinset":
+                console.log("drawing trapezoid fins");
+
+                rootchord   = component.querySelector('rootchord').innerHTML * scaler.value;
+                tipchord    = component.querySelector('tipchord').innerHTML * scaler.value;
+                sweeplength = component.querySelector('sweeplength').innerHTML * scaler.value;
+                height      = component.querySelector('height').innerHTML * scaler.value;
+
+                ctx.moveTo(length+xOffset, yOffset);
+                
+                ctx.lineTo(length+xOffset-rootchord, yOffset);
+                ctx.lineTo(length+xOffset-rootchord+sweeplength, yOffset+height);
+                ctx.lineTo(length+xOffset-rootchord+sweeplength+tipchord, yOffset+height);
+                ctx.lineTo(length+xOffset, radius);
+
+                break;
+
+            case "freeformfinset":
+                console.log("drawing freeform fins");
+
+                let points = component.querySelector('finpoints').children;
+
+                xOffset -= points[points.length-1].getAttribute('x') * scaler.value;
+
+                for (var i=0; i < points.length; i++) {
+                    let x = (points[i].getAttribute('x') * scaler.value) + xOffset;
+                    let y = yOffset - (points[i].getAttribute('y') * scaler.value);
+
+                    if (i == 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+
+                break;
+
+            default: break;
+        }
+
+        ctx.closePath();
+        ctx.fillStyle = 'gray';
+        ctx.fill();
+        ctx.stroke();
     }
 }
 
