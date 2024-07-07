@@ -59,29 +59,32 @@ function drawRocket(rocket, canvas) {
         drawSubComponents(stage.querySelector('subcomponents'), ctx);
     });
 
-    function drawSubComponents(component, ctx) {
-        console.log(component);
-
+    function drawSubComponents(component, ctx, y=0) {
         var components = component.children;
-        console.log(components);
         
         for (var i=0; i < components.length; i++) {
             switch (components[i].nodeName) {
                 case "nosecone":
-                    drawNoseCone(components[i], ctx);
+                    y += drawNoseCone(components[i], ctx);
+                    y = drawSubComponents(components[i].querySelector('subcomponents'), ctx, y)
                     break;
 
                 case "bodytube":
-                    drawBodyTube(components[i], ctx);
+                    y += drawBodyTube(components[i], ctx, y);
+                    y = drawSubComponents(components[i].querySelector('subcomponents'), ctx, y)
                     break;
 
+                case "ellipticalfinset":
+                case "freeformfinset":
                 case "trapezoidfinset":
-                    drawFins(components[i], ctx);
+                    drawFins(components[i], ctx, y);
                     break;
 
                 default: break;
             }
         }
+
+        return y;
     }
 
     function drawNoseCone(component, ctx) {
@@ -94,12 +97,11 @@ function drawRocket(rocket, canvas) {
         const res = .001;
 
         console.log(length, radius)
+        ctx.beginPath();
 
         switch (component.querySelector('shape').textContent) {
             case "ogive":
                 console.log("drawing ogive nosecone");
-
-                ctx.beginPath();
 
                 // Top half of the ogive nosecone
                 for (let x = length; x >= 0; x-=res) {
@@ -113,32 +115,20 @@ function drawRocket(rocket, canvas) {
                     ctx.lineTo(length - x, originY + y);
                 }
 
-                ctx.closePath();
-                ctx.fillStyle = 'gray';
-                ctx.fill();
-                ctx.stroke();
-
                 break;
 
             case "conical":
                 console.log("drawing concial nosecone");
 
-                ctx.beginPath();
-                ctx.moveTo(originX, originY);
+                ctx.moveTo(0, originY);
 
                 ctx.lineTo(-length, originY - radius);
                 ctx.lineTo(-length, originY + radius);
-
-                ctx.closePath();
-                ctx.fillStyle = 'gray';
-                ctx.fill();
-                ctx.stroke();
                 
                 break;
 
             case "ellipsoid":
                 console.log("drawing ellipsoid nosecone");
-                ctx.beginPath();
 
                 // Top half of the nosecone
                 for (let x = length; x >= 0; x-=res) {
@@ -154,22 +144,12 @@ function drawRocket(rocket, canvas) {
                     ctx.lineTo(length - x, originY + y);
                 }
 
-                ctx.closePath();
-                ctx.fillStyle = 'gray';
-                ctx.fill();
-                ctx.stroke();
-
                 break;
 
             case "power":
                 console.log("drawing power nosecone");
 
-                ctx.beginPath();
-
                 let n = component.querySelector("shapeparameter").textContent;
-
-                console.log(n);
-                console.log(component.querySelector("shapeparameter"));
 
                 // Top half of the nosecone
                 for (let x = 0.0; x <= length; x+=res) {
@@ -185,18 +165,11 @@ function drawRocket(rocket, canvas) {
 
                     ctx.lineTo(x, originY + y);
                 }
-
-                ctx.closePath();
-                ctx.fillStyle = 'gray';
-                ctx.fill();
-                ctx.stroke();
                 
                 break;
 
             case "parabolic": // X
                 console.log("drawing parabolic nosecone");
-
-                ctx.beginPath();
 
                 let k = component.querySelector("shapeparameter").textContent;
 
@@ -214,20 +187,12 @@ function drawRocket(rocket, canvas) {
                     ctx.lineTo(x, originY + y);
                 }
                 
-                ctx.closePath();
-                ctx.fillStyle = 'gray';
-                ctx.fill();
-                ctx.stroke();
-
                 break;
 
             case "haack":
                 console.log("drawing haack nosecone");
 
-                ctx.beginPath();
-
                 let C = component.querySelector("shapeparameter").textContent;
-                console.log(C)
 
                 // Top half of the nosecone
                 for (let x = 0.0; x <= length; x+=res) {
@@ -245,23 +210,54 @@ function drawRocket(rocket, canvas) {
                     ctx.lineTo(x, originY + y);
                 }
                 
-                ctx.closePath();
-                ctx.fillStyle = 'gray';
-                ctx.fill();
-                ctx.stroke();
-
                 break;
 
             default: break;
+
         }
+
+        ctx.closePath();
+        ctx.fillStyle = 'gray';
+        ctx.fill();
+        ctx.stroke();
+
+        console.log(length)
+
+        return length;
     }
 
-    function drawBodyTube(component, ctx) {
+    function drawBodyTube(component, ctx, y) {
         console.log("drawing bodytube");
+
+        let length = component.querySelector('length').textContent * scaler.value;
+        let radius = component.querySelector('radius').textContent;
+
+        const originY = canvas.height / 2;
+
+        if (radius.includes("auto")) {
+            radius = radius.split("auto")[1];
+        }
+
+        radius *= scaler.value;
+        console.log(length, radius, y);
+
+        ctx.beginPath();
+        
+        ctx.moveTo(y, originY-radius);
+        ctx.lineTo(y+length, originY-radius)
+        ctx.lineTo(y+length, originY+radius)
+        ctx.lineTo(y, originY+radius)
+
+
+        ctx.closePath();
+        ctx.fillStyle = 'gray';
+        ctx.fill();
+        ctx.stroke();
+
+        return length;
     }
 
-    function drawFins(component, ctx) {
-        console.log("drawing fins");
+    function drawFins(component, ctx, y) {
     }
 }
 
