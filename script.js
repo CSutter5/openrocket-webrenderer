@@ -78,7 +78,7 @@ function drawRocket(rocket, canvas) {
                     y = drawSubComponents(components[i].querySelector('subcomponents'), ctx, y)
                     break;
 
-                // case "ellipticalfinset":
+                case "ellipticalfinset":
                 case "freeformfinset":
                 // case "trapezoidfinset":
                     drawFins(components[i], ctx, y);
@@ -292,7 +292,7 @@ function drawRocket(rocket, canvas) {
                 height    = component.querySelector('height').innerHTML * scaler.value;
 
                 ctx.ellipse(
-                    xOffset - rootchord,
+                    xOffset - (rootchord/2),
                     yOffset,
                     rootchord/2,
                     height,
