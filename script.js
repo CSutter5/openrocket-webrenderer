@@ -8,8 +8,6 @@ scaler.addEventListener('input', function() {
     const scale = scaler.value;
     svg.setAttribute('width', scale * 2.1);
     svg.setAttribute('height', scale * 0.9);
-
-    console.log("ASDASDASDA");
 })
 
 document.getElementById('zipFileInput').addEventListener('change', function(event) {
@@ -17,8 +15,6 @@ document.getElementById('zipFileInput').addEventListener('change', function(even
     if (file && file.name.endsWith('.ork')) {
         const reader = new FileReader();
         reader.onload = function(event) {
-            confirm("Make sure all fins are converted to freeform fins");
-
             const arrayBuffer = event.target.result;
             JSZip.loadAsync(arrayBuffer).then(function(zip) {
                 zip.forEach(function (relativePath, zipEntry) {
@@ -85,7 +81,7 @@ function drawRocket(rocket, svgContainer) {
 
                 case "ellipticalfinset":
                 case "freeformfinset":
-                // case "trapezoidfinset":
+                case "trapezoidfinset":
                     drawFins(components[i], svgContainer, y);
                     break;
 
@@ -129,35 +125,42 @@ function drawRocket(rocket, svgContainer) {
                 break;
     
             case "ellipsoid":
-                for (let x = 0; x <= length; x += res) {
-                    let y = radius * Math.sqrt(1 - Math.pow(x / length, 2));
-                    d += ` L${x},${originY - y}`;
+                for (let x = 0; x <= length; x++) {
+                    let y = radius * Math.sqrt(1 - Math.pow((x / length), 2));
+                    d += ` L${length - x},${originY - y}`;
                 }
-                for (let x = length; x >= 0; x -= res) {
-                    let y = radius * Math.sqrt(1 - Math.pow(x / length, 2));
-                    d += ` L${x},${originY + y}`;
+
+                d += `M${0},${originY}`;
+                // d += `L${length},${originY - radius}`;
+
+                for (let x = length; x >= 0; x--) {
+                    let y = radius * Math.sqrt(1 - Math.pow((x / length), 2));
+                    d += ` L${length - x},${originY + y}`;
                 }
+                // d += `L${length},${originY}`;
+
                 break;
+                
     
             case "power":
                 let n = component.querySelector("shapeparameter").textContent;
-                for (let x = 0; x <= length; x += res) {
-                    let y = radius * Math.pow((x / length), n);
+                for (let x = 0; x <= length; x++) {
+                    let y = radius * Math.pow(x / length, n);
                     d += ` L${x},${originY - y}`;
                 }
-                for (let x = length; x >= 0; x -= res) {
-                    let y = radius * Math.pow((x / length), n);
+                for (let x = length; x >= 0; x--) {
+                    let y = radius * Math.pow(x / length, n);
                     d += ` L${x},${originY + y}`;
                 }
                 break;
     
             case "parabolic":
                 let k = component.querySelector("shapeparameter").textContent;
-                for (let x = 0; x <= length; x += res) {
+                for (let x = 0; x <= length; x++) {
                     let y = radius * ((2 * (x / length)) - k * Math.pow(x / length, 2)) / (2 - k);
                     d += ` L${x},${originY - y}`;
                 }
-                for (let x = length; x >= 0; x -= res) {
+                for (let x = length; x >= 0; x--) {
                     let y = radius * ((2 * (x / length)) - k * Math.pow(x / length, 2)) / (2 - k);
                     d += ` L${x},${originY + y}`;
                 }
@@ -165,12 +168,12 @@ function drawRocket(rocket, svgContainer) {
     
             case "haack":
                 let C = component.querySelector("shapeparameter").textContent;
-                for (let x = 0; x <= length; x += res) {
+                for (let x = 0; x <= length; x++) {
                     let theta = Math.acos(1 - ((2 * x) / length));
                     let y = (radius * Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta)))) / Math.sqrt(Math.PI);
                     d += ` L${x},${originY - y}`;
                 }
-                for (let x = length; x >= 0; x -= res) {
+                for (let x = length; x >= 0; x--) {
                     let theta = Math.acos(1 - ((2 * x) / length));
                     let y = (radius * Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta)))) / Math.sqrt(Math.PI);
                     d += ` L${x},${originY + y}`;
@@ -240,8 +243,13 @@ function drawRocket(rocket, svgContainer) {
             case "ellipticalfinset":
                 rootchord = component.querySelector('rootchord').innerHTML * scaler.value;
                 height = component.querySelector('height').innerHTML * scaler.value;
+    
+                const rx = rootchord;
+                const ry = height;
+    
+                d += `M${xOffset - rootchord},${yOffset} `; // Move to the left point on the horizontal axis
+                d += `A${rootchord/2},${height} 0 0,1 ${xOffset},${yOffset}`; // Draw the top half of the ellipse
 
-                d += ` M${xOffset - (rootchord / 2)},${yOffset} A${rootchord / 2},${height} 0 0,1 ${xOffset - (rootchord / 2)},${originY}`;
                 break;
                 
             case "trapezoidfinset":
@@ -250,7 +258,7 @@ function drawRocket(rocket, svgContainer) {
                 sweeplength = component.querySelector('sweeplength').innerHTML * scaler.value;
                 height = component.querySelector('height').innerHTML * scaler.value;
 
-                d += ` M${xOffset},${yOffset} L${xOffset - rootchord},${yOffset} L${xOffset - rootchord + sweeplength},${yOffset + height} L${xOffset - rootchord + sweeplength + tipchord},${yOffset + height} Z`;
+                d += ` M${xOffset},${yOffset} L${xOffset - rootchord},${yOffset} L${xOffset - rootchord + sweeplength},${yOffset - height} L${xOffset - rootchord + sweeplength + tipchord},${yOffset - height} Z`;
                 break;
 
             case "freeformfinset":
