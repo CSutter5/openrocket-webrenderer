@@ -6,24 +6,21 @@
     <title>Upload and List Zip Files</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Upload an openrocket design file</h1>
+    <h1>Upload an OpenRocket Design File</h1>
     <input type="file" id="zipFileInput" accept=".ork">
     <div id="chart-container" hidden>
-        <canvas id="chart" ></canvas>
+        <canvas id="chart"></canvas>
     </div>
-
     <div id="rocket-container">
-        <canvas id="rocket" ></canvas>
+        <svg id="rocket" width="800" height="600"></svg>
     </div>
     <div class="scaler">
         <label for="scaler">Scale:</label>
         <input type="range" min="1" max="1000" value="200" class="slider" id="scaler">
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
