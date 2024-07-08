@@ -2,6 +2,16 @@ const parser = new DOMParser();
 
 const scaler = document.getElementById('scaler');
 
+// Real time scaler
+scaler.addEventListener('input', function() {
+    let svg = document.getElementById('rocket');
+    const scale = scaler.value;
+    svg.setAttribute('width', scale * 2.1);
+    svg.setAttribute('height', scale * 0.9);
+
+    console.log("ASDASDASDA");
+})
+
 document.getElementById('zipFileInput').addEventListener('change', function(event) {
     const file = event.target.files[0];
     if (file && file.name.endsWith('.ork')) {
@@ -98,14 +108,20 @@ function drawRocket(rocket, svgContainer) {
     
         switch (component.querySelector('shape').textContent) {
             case "ogive":
-                for (let x = 0; x <= length; x += res) {
+                for (let x = length; x >= 0; x--) {
                     let y = radius * (Math.sqrt(1 - Math.pow((x / length), 2)));
-                    d += ` L${x},${originY - y}`;
+                    d += ` L${length-x},${originY - y}`;
                 }
-                for (let x = length; x >= 0; x -= res) {
+
+                d += `L${length},${originY}`;
+                d += `M${0},${originY}`;
+
+                for (let x = length; x >= 0; x--) {
                     let y = radius * (Math.sqrt(1 - Math.pow((x / length), 2)));
-                    d += ` L${x},${originY + y}`;
+                    d += ` L${length-x},${originY + y}`;
                 }
+                d += `L${length},${originY}`;
+
                 break;
     
             case "conical":
