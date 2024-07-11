@@ -42,10 +42,10 @@ function processRocketFile(file) {
 
     const headers = "Time,Altitude,Vertical velocity,Vertical acceleration,Total velocity,Total acceleration,Position East of launch,Position North of launch,Lateral distance,Lateral direction,Lateral velocity,Lateral acceleration,Latitude,Longitude,Gravitational acceleration,Angle of attack,Roll rate,Pitch rate,Yaw rate,Mass,Motor mass,Longitudinal moment of inertia,Rotational moment of inertia,CP location,CG location,Stability margin calibers,Mach number,Reynolds number,Thrust,Drag force,Drag coefficient,Axial drag coefficient,Friction drag coefficient,Pressure drag coefficient,Base drag coefficient,Normal force coefficient,Pitch moment coefficient,Yaw moment coefficient,Side force coefficient,Roll moment coefficient,Roll forcing coefficient,Roll damping coefficient,Pitch damping coefficient,Coriolis acceleration,Reference length,Reference area,Vertical orientation (zenith),Lateral orientation (azimuth),Wind velocity,Air temperature,Air pressure,Speed of sound,Simulation time step,Computation time".split(",");
 
-    // plotSim(
-    //     openrocket.querySelector('simulations').children[0],
-    //     simChart, headers
-    // );
+    plotSim(
+        openrocket.querySelector('simulations').children[0],
+        simChart, headers
+    );
     
     drawRocket(
         rocket.querySelector('subcomponents'),
@@ -59,37 +59,38 @@ function drawRocket(rocket, svgContainer) {
     }
 
     var stages = rocket.querySelectorAll('stage');
+    var length = 0;
 
     stages.forEach((stage) => {
-        drawSubComponents(stage.querySelector('subcomponents'), svgContainer);
+        length = drawSubComponents(stage.querySelector('subcomponents'), svgContainer, length);
     });
 
-    function drawSubComponents(component, svgContainer, y = 0) {
+    function drawSubComponents(component, svgContainer, length) {
         var components = component.children;
         
         for (var i = 0; i < components.length; i++) {
             switch (components[i].nodeName) {
                 case "nosecone":
-                    y += drawNoseCone(components[i], svgContainer, y);
-                    y = drawSubComponents(components[i].querySelector('subcomponents'), svgContainer, y);
+                    length = drawNoseCone(components[i], svgContainer, length);
+                    length = drawSubComponents(components[i].querySelector('subcomponents'), svgContainer, length);
                     break;
 
                 case "bodytube":
-                    y += drawBodyTube(components[i], svgContainer, y);
-                    y = drawSubComponents(components[i].querySelector('subcomponents'), svgContainer, y);
+                    length = drawBodyTube(components[i], svgContainer, length);
+                    length = drawSubComponents(components[i].querySelector('subcomponents'), svgContainer, length);
                     break;
 
                 case "ellipticalfinset":
                 case "freeformfinset":
                 case "trapezoidfinset":
-                    drawFins(components[i], svgContainer, y);
+                    drawFins(components[i], svgContainer, length);
                     break;
 
                 default: break;
             }
         }
 
-        return y;
+        return length;
     }
     
     function drawNoseCone(component, svgContainer, y) {
@@ -179,14 +180,14 @@ function drawRocket(rocket, svgContainer) {
                 let C = component.querySelector("shapeparameter").textContent;
                 for (let x = 0; x <= length; x++) {
                     let theta = Math.acos(1 - ((2 * x) / length));
-                    let y = (radius * Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta)))) / Math.sqrt(Math.PI);
+                    let y = (Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta)))) / Math.sqrt(Math.PI);
                     d += ` L${x},${originY - y}`;
                 }
                 d += ` Z`;
 
                 for (let x = length; x >= 0; x--) {
                     let theta = Math.acos(1 - ((2 * x) / length));
-                    let y = (radius * Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta)))) / Math.sqrt(Math.PI);
+                    let y = (Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta)))) / Math.sqrt(Math.PI);
                     d += ` L${x},${originY + y}`;
                 }
                 d += ` Z`;
@@ -203,7 +204,7 @@ function drawRocket(rocket, svgContainer) {
     
         svgContainer.appendChild(path);
     
-        return length;
+        return y+length;
     }
     
 
@@ -229,7 +230,7 @@ function drawRocket(rocket, svgContainer) {
 
         svgContainer.appendChild(rect);
 
-        return length;
+        return y+length;
     }
 
     function drawFins(component, svgContainer, length) {
@@ -343,7 +344,29 @@ function drawRocket(rocket, svgContainer) {
     }
 }
 
-function plotSim(sim, svgContainer, headers) {
+// Get the modal
+var modal = document.getElementById("sim-modal");
+
+// Get the <span> element that closes the modal
+var span = document.getElementsByClassName("close")[0];
+
+function openSim() {
+    modal.style.display = "block";
+}
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = function() {
+  modal.style.display = "none";
+}
+  
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+} 
+
+function plotSim(sim, chartDom, headers) {
     if (sim.attributes['status'].nodeValue == "uptodate") {
         var flightData = sim.querySelector('flightdata');
         
@@ -364,8 +387,41 @@ function plotSim(sim, svgContainer, headers) {
             datasets.push(dataset);
         }
 
-        // Your code to plot the graph using the dataset data
-        // Since SVG doesn't directly support line graphs, you may need to create lines manually using SVG paths or use a library like D3.js
+        let chart = new Chart(chartDom, {
+            type: 'line',
+            data: {
+                labels: xLabels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time Sec'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Altitude (km)'
+                        },
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false // This hides all text in the legend and also the labels.
+                    }
+                }
+            }
+        });
+
+        for (var i=1; i < data[0].length; i++) {
+            chart.setDatasetVisibility(i, false);
+        }
+        chart.update();
 
     } else {
         alert("Make sure you ran the simulation and saved with all simulation data");
