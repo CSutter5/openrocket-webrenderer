@@ -125,13 +125,16 @@ function drawRocket(rocket, svgContainer) {
                 break;
     
             case "ellipsoid":
-                for (let x = 0; x <= length; x++) {
+                d += `M${0},${originY}`;
+
+                for (let x = length; x >= 0; x--) {
                     let y = radius * Math.sqrt(1 - Math.pow((x / length), 2));
                     d += ` L${length - x},${originY - y}`;
                 }
-                d += ` Z`;
 
-                for (let x = length; x >= 0; x--) {
+                d += ` L${length},${originY}`
+
+                for (let x = 0; x <= length; x++) {
                     let y = radius * Math.sqrt(1 - Math.pow((x / length), 2));
                     d += ` L${length - x},${originY + y}`;
                 }
