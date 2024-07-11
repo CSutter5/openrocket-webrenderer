@@ -8,19 +8,29 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <h1>Upload an OpenRocket Design File</h1>
     <input type="file" id="zipFileInput" accept=".ork">
-    <div id="chart-container" hidden>
-        <canvas id="chart"></canvas>
+    <div id="sim-modal" class="modal">
+        <!-- Modal content -->
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            
+            <canvas id="chart"></canvas>
+        </div>
+
     </div>
+
     <div class="scaler">
         <label for="scaler">Scale:</label>
         <input type="range" min="1" max="1000" value="200" class="slider" id="scaler">
     </div>
-    <div id="rocket-container">
+    
+    <div id="rocket-container" onclick="openSim();">
         <svg id="rocket" width="80vh" height="40vh" viewBox="50 100 300 200" ></svg>
     </div>
+    
     <script src="script.js"></script>
 </body>
 </html>
