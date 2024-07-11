@@ -125,19 +125,20 @@ function drawRocket(rocket, svgContainer) {
                 break;
     
             case "ellipsoid":
-                for (let x = 0; x <= length; x++) {
+                d += `M${0},${originY}`;
+
+                for (let x = length; x >= 0; x--) {
                     let y = radius * Math.sqrt(1 - Math.pow((x / length), 2));
                     d += ` L${length - x},${originY - y}`;
                 }
 
-                d += `M${0},${originY}`;
-                // d += `L${length},${originY - radius}`;
+                d += ` L${length},${originY}`
 
-                for (let x = length; x >= 0; x--) {
+                for (let x = 0; x <= length; x++) {
                     let y = radius * Math.sqrt(1 - Math.pow((x / length), 2));
                     d += ` L${length - x},${originY + y}`;
                 }
-                // d += `L${length},${originY}`;
+                d += ` Z`;
 
                 break;
                 
@@ -148,10 +149,14 @@ function drawRocket(rocket, svgContainer) {
                     let y = radius * Math.pow(x / length, n);
                     d += ` L${x},${originY - y}`;
                 }
+                d += ` Z`;
+
                 for (let x = length; x >= 0; x--) {
                     let y = radius * Math.pow(x / length, n);
                     d += ` L${x},${originY + y}`;
                 }
+                d += ` Z`;
+
                 break;
     
             case "parabolic":
@@ -160,10 +165,14 @@ function drawRocket(rocket, svgContainer) {
                     let y = radius * ((2 * (x / length)) - k * Math.pow(x / length, 2)) / (2 - k);
                     d += ` L${x},${originY - y}`;
                 }
+                d += ` Z`;
+
                 for (let x = length; x >= 0; x--) {
                     let y = radius * ((2 * (x / length)) - k * Math.pow(x / length, 2)) / (2 - k);
                     d += ` L${x},${originY + y}`;
                 }
+                d += ` Z`;
+                
                 break;
     
             case "haack":
@@ -173,11 +182,15 @@ function drawRocket(rocket, svgContainer) {
                     let y = (radius * Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta)))) / Math.sqrt(Math.PI);
                     d += ` L${x},${originY - y}`;
                 }
+                d += ` Z`;
+
                 for (let x = length; x >= 0; x--) {
                     let theta = Math.acos(1 - ((2 * x) / length));
                     let y = (radius * Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta)))) / Math.sqrt(Math.PI);
                     d += ` L${x},${originY + y}`;
                 }
+                d += ` Z`;
+
                 break;
     
             default:
@@ -234,6 +247,8 @@ function drawRocket(rocket, svgContainer) {
         let xOffset = length + (component.querySelector('position').innerHTML * scaler.value);
         let yOffset = originY - radius;
 
+        let numFins = component.querySelector('fincount').innerHTML;
+
         let rootchord;
         let tipchord;
         let sweeplength;
@@ -248,8 +263,14 @@ function drawRocket(rocket, svgContainer) {
                 const ry = height;
     
                 d += `M${xOffset - rootchord},${yOffset} `; // Move to the left point on the horizontal axis
-                d += `A${rootchord/2},${height} 0 0,1 ${xOffset},${yOffset}`; // Draw the top half of the ellipse
+                d += `A${rootchord/2},${height} 0 0,1 ${xOffset},${yOffset} `; // Draw the top half of the ellipse
 
+                if (numFins % 2 == 0) {
+                    console.log("drawing %2 fins");
+
+                    d += `M${xOffset - rootchord},${yOffset+ radius*2} `; // Move to the left point on the horizontal axis
+                    d += `A${rootchord/2},${height} 0 0,0 ${xOffset},${yOffset+ radius*2} `; // Draw the top half of the ellipse
+                }
                 break;
                 
             case "trapezoidfinset":
@@ -258,7 +279,22 @@ function drawRocket(rocket, svgContainer) {
                 sweeplength = component.querySelector('sweeplength').innerHTML * scaler.value;
                 height = component.querySelector('height').innerHTML * scaler.value;
 
-                d += ` M${xOffset},${yOffset} L${xOffset - rootchord},${yOffset} L${xOffset - rootchord + sweeplength},${yOffset - height} L${xOffset - rootchord + sweeplength + tipchord},${yOffset - height} Z`;
+                d += `M${xOffset},${yOffset} `;
+                d += `L${xOffset - rootchord},${yOffset} `;
+                d += `L${xOffset - rootchord + sweeplength},${yOffset - height} `;
+                d += `L${xOffset - rootchord + sweeplength + tipchord},${yOffset - height} Z `;
+
+
+                if (numFins % 2 == 0) {
+                    console.log("drawing %2 fins");
+
+                    d += `M${xOffset},${yOffset + radius*2} `;
+                    d += `L${xOffset - rootchord},${yOffset + radius*2} `;
+                    d += `L${xOffset - rootchord + sweeplength},${yOffset + radius*2 + height} `;
+                    d += `L${xOffset - rootchord + sweeplength + tipchord},${yOffset + radius*2 + height} Z `;
+                }
+
+
                 break;
 
             case "freeformfinset":
@@ -275,6 +311,25 @@ function drawRocket(rocket, svgContainer) {
                         d += ` L${x},${y}`;
                     }
                 }
+
+                if (numFins % 2 == 0) {
+                    console.log("drawing %2 fins");
+
+                    let startY = yOffset + radius * 2;
+
+                    for (var i = 0; i < points.length; i++) {
+                        let x = (points[i].getAttribute('x') * scaler.value) + xOffset;
+                        let y = points[i].getAttribute('y') * scaler.value;
+
+                        if (i == 0) {
+                            d += ` M${x},${startY + y}`;
+                        } else {
+                            d += ` L${x},${startY + y}`;
+                        }
+                    }
+                }
+
+
                 break;
 
             default: break;
