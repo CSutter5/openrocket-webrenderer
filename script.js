@@ -60,36 +60,38 @@ function drawRocket(rocket, svgContainer) {
 
     var stages = rocket.querySelectorAll('stage');
 
+    var length = 0;
+
     stages.forEach((stage) => {
-        drawSubComponents(stage.querySelector('subcomponents'), svgContainer);
+        length += drawSubComponents(stage.querySelector('subcomponents'), svgContainer, length);
     });
 
-    function drawSubComponents(component, svgContainer, y = 0) {
+    function drawSubComponents(component, svgContainer, length) {
         var components = component.children;
         
         for (var i = 0; i < components.length; i++) {
             switch (components[i].nodeName) {
                 case "nosecone":
-                    y += drawNoseCone(components[i], svgContainer, y);
-                    y = drawSubComponents(components[i].querySelector('subcomponents'), svgContainer, y);
+                    length += drawNoseCone(components[i], svgContainer, length);
+                    length = drawSubComponents(components[i].querySelector('subcomponents'), svgContainer, length);
                     break;
 
                 case "bodytube":
-                    y += drawBodyTube(components[i], svgContainer, y);
-                    y = drawSubComponents(components[i].querySelector('subcomponents'), svgContainer, y);
+                    length += drawBodyTube(components[i], svgContainer, length);
+                    length = drawSubComponents(components[i].querySelector('subcomponents'), svgContainer, length);
                     break;
 
                 case "ellipticalfinset":
                 case "freeformfinset":
                 case "trapezoidfinset":
-                    drawFins(components[i], svgContainer, y);
+                    drawFins(components[i], svgContainer, length);
                     break;
 
                 default: break;
             }
         }
 
-        return y;
+        return length;
     }
     
     function drawNoseCone(component, svgContainer, y) {
@@ -179,14 +181,14 @@ function drawRocket(rocket, svgContainer) {
                 let C = component.querySelector("shapeparameter").textContent;
                 for (let x = 0; x <= length; x++) {
                     let theta = Math.acos(1 - ((2 * x) / length));
-                    let y = (radius * Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta)))) / Math.sqrt(Math.PI);
+                    let y = Math.pow(Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta))), 1/radius) / Math.sqrt(Math.PI);
                     d += ` L${x},${originY - y}`;
                 }
                 d += ` Z`;
 
                 for (let x = length; x >= 0; x--) {
                     let theta = Math.acos(1 - ((2 * x) / length));
-                    let y = (radius * Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta)))) / Math.sqrt(Math.PI);
+                    let y = Math.pow(Math.sqrt(theta - (Math.sin(2 * theta) / 2) + C * (1 / 4) * (3 * Math.sin(theta) - Math.sin(3 * theta))), 1/radius) / Math.sqrt(Math.PI);
                     d += ` L${x},${originY + y}`;
                 }
                 d += ` Z`;
