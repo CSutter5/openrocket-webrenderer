@@ -254,6 +254,7 @@ function drawRocket(rocket, svgContainer) {
 
         let numFins = component.querySelector('fincount').innerHTML;
 
+        let thickness = component.querySelector('thickness').innerHTML * scaler.value;
         let rootchord;
         let tipchord;
         let sweeplength;
@@ -352,13 +353,21 @@ function drawRocket(rocket, svgContainer) {
             default: break;
         }
 
+        if (numFins == 3) {
+            path.classList.add("fin-3d");
+        } else if (numFins == 4) {
+            d += `M${xOffset},${originY - thickness/2} `;
+            d += `L${xOffset - rootchord},${originY - thickness/2} `;
+            d += `L${xOffset - rootchord},${originY + thickness/2} `;
+            d += `L${xOffset - rootchord},${originY - thickness/2} `;
+
+            d += ``;
+        }
+
         path.setAttribute("d", d.trim());
         path.setAttribute("fill", "gray");
         path.setAttribute("stroke", "black");
         
-        if (numFins == 3) {
-            path.classList.add("fin-3d");
-        }
 
         path.classList.add("rocket");
 
