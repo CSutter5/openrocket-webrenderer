@@ -35,18 +35,18 @@ document.getElementById('zipFileInput').addEventListener('change', function(even
 function processRocketFile(file) {
     const simChart = document.getElementById('chart');
     const rocketDrawing = document.getElementById('rocket');
-    
+
     const doc = parser.parseFromString(file, 'text/xml');
     const openrocket = doc.querySelector('openrocket');
     const rocket = openrocket.querySelector('rocket');
 
     const headers = "Time,Altitude,Vertical velocity,Vertical acceleration,Total velocity,Total acceleration,Position East of launch,Position North of launch,Lateral distance,Lateral direction,Lateral velocity,Lateral acceleration,Latitude,Longitude,Gravitational acceleration,Angle of attack,Roll rate,Pitch rate,Yaw rate,Mass,Motor mass,Longitudinal moment of inertia,Rotational moment of inertia,CP location,CG location,Stability margin calibers,Mach number,Reynolds number,Thrust,Drag force,Drag coefficient,Axial drag coefficient,Friction drag coefficient,Pressure drag coefficient,Base drag coefficient,Normal force coefficient,Pitch moment coefficient,Yaw moment coefficient,Side force coefficient,Roll moment coefficient,Roll forcing coefficient,Roll damping coefficient,Pitch damping coefficient,Coriolis acceleration,Reference length,Reference area,Vertical orientation (zenith),Lateral orientation (azimuth),Wind velocity,Air temperature,Air pressure,Speed of sound,Simulation time step,Computation time".split(",");
 
-    plotSim(
-        openrocket.querySelector('simulations').children[0],
-        simChart, headers
-    );
-    
+    // plotSim(
+    //     openrocket.querySelector('simulations').children[0],
+    //     simChart, headers
+    // );
+
     drawRocket(
         rocket.querySelector('subcomponents'),
         rocketDrawing
@@ -67,7 +67,7 @@ function drawRocket(rocket, svgContainer) {
 
     function drawSubComponents(component, svgContainer, length) {
         var components = component.children;
-        
+
         for (var i = 0; i < components.length; i++) {
             switch (components[i].nodeName) {
                 case "nosecone":
@@ -86,23 +86,27 @@ function drawRocket(rocket, svgContainer) {
                     drawFins(components[i], svgContainer, length);
                     break;
 
+                case "transition":
+                    drawTransition(components[i], svgContainer, length);
+                    break;
+
                 default: break;
             }
         }
 
         return length;
     }
-    
+
     function drawNoseCone(component, svgContainer, y) {
         let length = component.querySelector('length').textContent * scaler.value;
         let radius = (component.querySelector('aftradius').textContent.split("auto ")[1]) * scaler.value;
-        
+
         const originY = svgContainer.height.baseVal.value / 2;
         const res = 0.001;
-    
+
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         let d = `M${0},${originY}`;  // Start at the base center
-    
+
         switch (component.querySelector('shape').textContent) {
             case "ogive":
                 for (let x = length; x >= 0; x--) {
@@ -120,11 +124,11 @@ function drawRocket(rocket, svgContainer) {
                 d += `L${length},${originY}`;
 
                 break;
-    
+
             case "conical":
                 d += ` L${length},${originY - radius} L${length},${originY + radius} Z`;
                 break;
-    
+
             case "ellipsoid":
                 d += `M${0},${originY}`;
 
@@ -142,8 +146,8 @@ function drawRocket(rocket, svgContainer) {
                 d += ` Z`;
 
                 break;
-                
-    
+
+
             case "power":
                 let n = component.querySelector("shapeparameter").textContent;
                 for (let x = 0; x <= length; x++) {
@@ -159,7 +163,7 @@ function drawRocket(rocket, svgContainer) {
                 d += ` Z`;
 
                 break;
-    
+
             case "parabolic":
                 let k = component.querySelector("shapeparameter").textContent;
                 for (let x = 0; x <= length; x++) {
@@ -173,9 +177,9 @@ function drawRocket(rocket, svgContainer) {
                     d += ` L${x},${originY + y}`;
                 }
                 d += ` Z`;
-                
+
                 break;
-    
+
             case "haack":
                 let C = component.querySelector("shapeparameter").textContent;
                 for (let x = 0; x <= length; x++) {
@@ -193,20 +197,20 @@ function drawRocket(rocket, svgContainer) {
                 d += ` Z`;
 
                 break;
-    
+
             default:
                 break;
         }
-    
+
         path.setAttribute("d", d.trim());
         path.setAttribute("fill", "gray");
         path.setAttribute("stroke", "black");
-    
+
         svgContainer.appendChild(path);
-    
+
         return y+length;
     }
-    
+
 
     function drawBodyTube(component, svgContainer, y) {
         let length = component.querySelector('length').textContent * scaler.value;
@@ -216,7 +220,7 @@ function drawRocket(rocket, svgContainer) {
             radius = radius.split("auto")[1];
         }
         radius *= scaler.value;
-        
+
         const originY = svgContainer.height.baseVal.value / 2;
 
         const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -244,36 +248,44 @@ function drawRocket(rocket, svgContainer) {
             radius = radius.split("auto")[1];
         }
         radius *= scaler.value;
-        
+
         let xOffset = length + (component.querySelector('position').innerHTML * scaler.value);
         let yOffset = originY - radius;
 
         let numFins = component.querySelector('fincount').innerHTML;
 
+        let thickness = component.querySelector('thickness').innerHTML * scaler.value;
         let rootchord;
         let tipchord;
         let sweeplength;
         let height;
 
+        const fin3 = Math.cos(120);
+
         switch (component.localName) {
             case "ellipticalfinset":
                 rootchord = component.querySelector('rootchord').innerHTML * scaler.value;
                 height = component.querySelector('height').innerHTML * scaler.value;
-    
+
                 const rx = rootchord;
                 const ry = height;
-    
+
                 d += `M${xOffset - rootchord},${yOffset} `; // Move to the left point on the horizontal axis
                 d += `A${rootchord/2},${height} 0 0,1 ${xOffset},${yOffset} `; // Draw the top half of the ellipse
 
-                if (numFins % 2 == 0) {
-                    console.log("drawing %2 fins");
+                if (numFins == 2 || numFins == 4) {
+                    console.log("drawing 2 fins");
 
-                    d += `M${xOffset - rootchord},${yOffset+ radius*2} `; // Move to the left point on the horizontal axis
-                    d += `A${rootchord/2},${height} 0 0,0 ${xOffset},${yOffset+ radius*2} `; // Draw the top half of the ellipse
+                    d += `M${xOffset - rootchord},${yOffset + radius*2} `; // Move to the left point on the horizontal axis
+                    d += `A${rootchord/2},${height} 0 0,0 ${xOffset},${yOffset + radius*2} `; // Draw the top half of the ellipse
+                } else if (numFins == 3) {
+                    console.log("drawing 3 fins");
+
+                    d += `M${xOffset - rootchord},${yOffset + radius*2 * fin3} `; // Move to the left point on the horizontal axis
+                    d += `A${rootchord/2},${height * fin3} 0 0,0 ${xOffset},${yOffset + radius*2 * fin3} `; // Draw the top half of the ellipse
                 }
                 break;
-                
+
             case "trapezoidfinset":
                 rootchord = component.querySelector('rootchord').innerHTML * scaler.value;
                 tipchord = component.querySelector('tipchord').innerHTML * scaler.value;
@@ -286,15 +298,21 @@ function drawRocket(rocket, svgContainer) {
                 d += `L${xOffset - rootchord + sweeplength + tipchord},${yOffset - height} Z `;
 
 
-                if (numFins % 2 == 0) {
-                    console.log("drawing %2 fins");
+                if (numFins == 2 || numFins == 4) {
+                    console.log("drawing 2 fins");
 
                     d += `M${xOffset},${yOffset + radius*2} `;
                     d += `L${xOffset - rootchord},${yOffset + radius*2} `;
                     d += `L${xOffset - rootchord + sweeplength},${yOffset + radius*2 + height} `;
                     d += `L${xOffset - rootchord + sweeplength + tipchord},${yOffset + radius*2 + height} Z `;
-                }
+                } else if (numFins == 3) {
+                    console.log("drawing 3 fins");
 
+                    d += `M${xOffset},${yOffset + radius*2 * fin3} `;
+                    d += `L${xOffset - rootchord},${yOffset + radius*2 * fin3} `;
+                    d += `L${xOffset - rootchord + sweeplength},${yOffset + radius*2 + height * fin3} `;
+                    d += `L${xOffset - rootchord + sweeplength + tipchord},${yOffset + radius*2 + height * fin3} Z `;
+                }
 
                 break;
 
@@ -302,38 +320,97 @@ function drawRocket(rocket, svgContainer) {
                 let points = component.querySelector('finpoints').children;
                 xOffset -= points[points.length - 1].getAttribute('x') * scaler.value;
 
-                for (var i = 0; i < points.length; i++) {
-                    let x = (points[i].getAttribute('x') * scaler.value) + xOffset;
-                    let y = yOffset - (points[i].getAttribute('y') * scaler.value);
-
-                    if (i == 0) {
-                        d += ` M${x},${y}`;
-                    } else {
-                        d += ` L${x},${y}`;
-                    }
-                }
-
-                if (numFins % 2 == 0) {
-                    console.log("drawing %2 fins");
-
-                    let startY = yOffset + radius * 2;
-
+                function draw(yOffset, bottom=false) {
                     for (var i = 0; i < points.length; i++) {
                         let x = (points[i].getAttribute('x') * scaler.value) + xOffset;
-                        let y = points[i].getAttribute('y') * scaler.value;
+                        let y;
+
+                        if (bottom) {
+                            y = yOffset + (points[i].getAttribute('y') * scaler.value);
+                        } else {
+                            y = yOffset - (points[i].getAttribute('y') * scaler.value);
+                        }
 
                         if (i == 0) {
-                            d += ` M${x},${startY + y}`;
+                            d += ` M${x},${y}`;
                         } else {
-                            d += ` L${x},${startY + y}`;
+                            d += ` L${x},${y}`;
                         }
                     }
                 }
+                
+                draw(yOffset);
 
+                if (numFins == 2 || numFins == 4) {
+                    console.log("drawing 2 fins");
+                    draw(yOffset + radius * 2, true);
+                } else if (numFins == 3) {
+                    draw(yOffset + radius*2 * fin3, true);
+                }
 
                 break;
 
             default: break;
+        }
+
+        if (numFins == 3) {
+            path.classList.add("fin-3d");
+        } else if (numFins == 4) {
+            d += `M${xOffset},${originY - thickness/2} `;
+            d += `L${xOffset - rootchord},${originY - thickness/2} `;
+            d += `L${xOffset - rootchord},${originY + thickness/2} `;
+            d += `L${xOffset - rootchord},${originY - thickness/2} `;
+
+            d += ``;
+        }
+
+        path.setAttribute("d", d.trim());
+        path.setAttribute("fill", "gray");
+        path.setAttribute("stroke", "black");
+        
+
+        path.classList.add("rocket");
+
+        svgContainer.appendChild(path);
+    }
+
+    function drawTransition(component, svgContainer, y) {
+
+        let length = component.querySelector('length').textContent * scaler.value;
+        let foreradius = component.querySelector('foreradius').textContent * scaler.value;
+        let aftradius = component.querySelector('aftradius').textContent * scaler.value;
+
+        const originY = svgContainer.height.baseVal.value / 2;
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        let d = `M${y},${originY}`;  // Start at the base center
+
+        switch (component.querySelector('shape').textContent) {
+            case "ogive":
+                break;
+
+            case "conical":
+
+                d += ` L${y},${originY - foreradius}`;
+                d += ` L${y + length},${originY - aftradius}`;
+                d += ` L${y + length},${originY + aftradius}`;
+                d += ` L${y},${originY + foreradius}`;
+
+                break;
+
+            case "ellipsoid":
+                break;
+
+            case "power":
+                break;
+
+            case "parabolic":
+                break;
+
+            case "haack":
+                break;
+
+            default:
+                break;
         }
 
         path.setAttribute("d", d.trim());
@@ -341,6 +418,8 @@ function drawRocket(rocket, svgContainer) {
         path.setAttribute("stroke", "black");
 
         svgContainer.appendChild(path);
+
+        return y+length;
     }
 }
 
@@ -358,19 +437,19 @@ function openSim() {
 span.onclick = function() {
   modal.style.display = "none";
 }
-  
+
 // When the user clicks anywhere outside of the modal, close it
 window.onclick = function(event) {
     if (event.target == modal) {
         modal.style.display = "none";
     }
-} 
+}
 
 function plotSim(sim, chartDom, headers) {
     if (sim.attributes['status'].nodeValue == "uptodate") {
         var flightData = sim.querySelector('flightdata');
-        
-        const data = flightData.innerHTML.trim().split('\n').map(row => 
+
+        const data = flightData.innerHTML.trim().split('\n').map(row =>
             row.replace(/<\/?datapoint>/g, '').split(',').map(value => parseFloat(value))
         );
 
